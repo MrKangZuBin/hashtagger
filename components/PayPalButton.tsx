@@ -1,127 +1,78 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { Loader2, ExternalLink } from 'lucide-react';
 
-export function PayPalButton({ plan, yearly }: { plan: string; yearly: boolean }) {
-  const router = useRouter();
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState('');
+interface PayPalButtonProps {
+  plan: string;
+  yearly: boolean;
+  onBeginCheckout?: () => void;
+}
 
-  // Get the appropriate plan ID based on plan and billing cycle
-  const getPlanId = () => {
-    const planIds: Record<string, { monthly: string; yearly: string }> = {
+export function PayPalButton({ plan, yearly, onBeginCheckout }: PayPalButtonProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Get the appropriate checkout link based on plan and billing cycle
+  const getCheckoutLink = () => {
+    const checkoutLinks: Record<string, { monthly: string; yearly: string }> = {
       pro: {
-        monthly: process.env.NEXT_PUBLIC_PAYPAL_PRO_MONTHLY_PLAN_ID || 'P-89K20521DL425110CNHOPAII',
-        yearly: process.env.NEXT_PUBLIC_PAYPAL_PRO_YEARLY_PLAN_ID || '',
+        monthly: process.env.NEXT_PUBLIC_PAYPAL_PRO_MONTHLY_CHECKOUT || 'https://www.paypal.com/ncp/payment/X3T9MHBXF4BQS',
+        yearly: process.env.NEXT_PUBLIC_PAYPAL_PRO_YEARLY_CHECKOUT || process.env.NEXT_PUBLIC_PAYPAL_PRO_MONTHLY_CHECKOUT || 'https://www.paypal.com/ncp/payment/X3T9MHBXF4BQS',
       },
       business: {
-        monthly: process.env.NEXT_PUBLIC_PAYPAL_BUSINESS_MONTHLY_PLAN_ID || '',
-        yearly: process.env.NEXT_PUBLIC_PAYPAL_BUSINESS_YEARLY_PLAN_ID || '',
+        monthly: process.env.NEXT_PUBLIC_PAYPAL_BUSINESS_MONTHLY_CHECKOUT || process.env.NEXT_PUBLIC_PAYPAL_PRO_MONTHLY_CHECKOUT || 'https://www.paypal.com/ncp/payment/X3T9MHBXF4BQS',
+        yearly: process.env.NEXT_PUBLIC_PAYPAL_BUSINESS_YEARLY_CHECKOUT || process.env.NEXT_PUBLIC_PAYPAL_PRO_MONTHLY_CHECKOUT || 'https://www.paypal.com/ncp/payment/X3T9MHBXF4BQS',
       },
     };
 
-    const planConfig = planIds[plan];
-    if (!planConfig) return '';
+    const linkConfig = checkoutLinks[plan];
+    if (!linkConfig) return null;
 
-    return yearly ? planConfig.yearly : planConfig.monthly;
+    return yearly ? linkConfig.yearly : linkConfig.monthly;
   };
 
-  useEffect(() => {
-    // Load PayPal SDK
-    const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID}&vault=true&intent=subscription`;
-    script.async = true;
-    script.onload = () => setIsLoaded(true);
-    script.onerror = () => setError('Failed to load PayPal SDK');
-    document.body.appendChild(script);
+  const handleCheckout = () => {
+    const checkoutLink = getCheckoutLink();
+    if (!checkoutLink) return;
 
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
+    setIsLoading(true);
 
-  useEffect(() => {
-    if (!isLoaded || !(window as any).paypal) return;
+    // Save plan info to localStorage before redirect
+    localStorage.setItem('hashtagger_pending_plan', plan);
+    localStorage.setItem('hashtagger_pending_yearly', String(yearly));
 
-    const planId = getPlanId();
-    if (!planId) {
-      setError('Plan not configured');
-      return;
-    }
+    // Close modal and notify parent
+    onBeginCheckout?.();
 
-    try {
-      (window as any).paypal.Buttons({
-        style: {
-          shape: 'rect',
-          color: 'gold',
-          layout: 'vertical',
-          label: 'subscribe',
-        },
-        createSubscription: (data: any, actions: any) => {
-          return actions.subscription.create({
-            planId: planId,
-          });
-        },
-        onApprove: (data: any) => {
-          // Subscription created successfully
-          console.log('Subscription created:', data.subscriptionID);
-
-          // Save subscription to localStorage (in real app, send to backend)
-          localStorage.setItem('hashtagger_subscription_id', data.subscriptionID);
-          localStorage.setItem('hashtagger_user_plan', plan);
-          localStorage.setItem('hashtagger_subscription_email', userEmail);
-
-          // Redirect to success page
-          router.push(`/checkout/${plan}?status=success&subscription=${data.subscriptionID}`);
-        },
-        onError: (err: any) => {
-          console.error('PayPal error:', err);
-          setError('Payment failed. Please try again.');
-        },
-      }).render('#paypal-button-container');
-    } catch (err) {
-      console.error('PayPal buttons error:', err);
-      setError('Failed to initialize PayPal button');
-    }
-  }, [isLoaded, plan, yearly, userEmail, router]);
+    // Open PayPal checkout in new tab
+    window.open(checkoutLink, '_blank');
+  };
 
   return (
     <div className="space-y-4">
-      {/* Email input */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Email for subscription
-        </label>
-        <input
-          type="email"
-          value={userEmail}
-          onChange={(e) => setUserEmail(e.target.value)}
-          placeholder="your@email.com"
-          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
-          required
-        />
-        <p className="mt-1 text-xs text-gray-500">
-          Subscription confirmation will be sent to this email
-        </p>
-      </div>
-
-      {/* PayPal Button Container */}
-      {error ? (
-        <div className="py-4 text-center text-sm text-red-500">{error}</div>
-      ) : !isLoaded ? (
-        <div className="flex items-center justify-center py-4">
-          <Loader2 className="h-6 w-6 animate-spin text-violet-600" />
-          <span className="ml-2 text-gray-500">Loading PayPal...</span>
-        </div>
-      ) : (
-        <div id="paypal-button-container" className="min-h-[150px]" />
-      )}
+      <button
+        onClick={handleCheckout}
+        disabled={isLoading}
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-yellow-400 px-6 py-3 font-semibold text-black transition hover:bg-yellow-500 disabled:opacity-50"
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="h-5 w-5 animate-spin" />
+            Redirecting to PayPal...
+          </>
+        ) : (
+          <>
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.607-.541c1.387 2.654-.186 5.718-3.656 6.787-1.564.48-3.32.576-5.024.576H10.12l-1.355 8.59h3.316a.641.641 0 0 0 .633-.54l.026-.17.5-3.185.032-.175a.641.641 0 0 1 .633-.54h.399c2.589 0 4.612-.528 5.61-2.054.826-1.266 1.143-2.873.914-4.573z"/>
+            </svg>
+            Pay with PayPal
+            <ExternalLink className="h-4 w-4" />
+          </>
+        )}
+      </button>
 
       <p className="text-center text-xs text-gray-400">
-        Secure payment via PayPal • Cancel anytime
+        Secure payment via PayPal • You will be redirected to complete payment
       </p>
     </div>
   );
