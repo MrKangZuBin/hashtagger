@@ -126,7 +126,7 @@ function PricingContent() {
 
       <footer className="border-t bg-white py-8 dark:border-gray-800 dark:bg-gray-900">
         <div className="mx-auto max-w-5xl px-4 text-center text-sm text-gray-500">
-          <p>Powered by DeepSeek AI • Built for creators</p>
+          <p>Powered by Zane • Built for creators</p>
         </div>
       </footer>
     </div>
