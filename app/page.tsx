@@ -41,6 +41,24 @@ function MainContent() {
       <footer className="border-t bg-white py-8 dark:border-gray-800 dark:bg-gray-900">
         <div className="mx-auto max-w-5xl px-4 text-center text-sm text-gray-500">
           <p>Powered by Zane • Built for creators</p>
+          <div className="mt-2 flex items-center justify-center gap-4">
+            <a
+              href="https://t.me/+uNUUQQawnzkwY2Y1"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-violet-600"
+            >
+              Telegram
+            </a>
+            <a
+              href="https://x.com/sanKang29267869"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-violet-600"
+            >
+              X (Twitter)
+            </a>
+          </div>
         </div>
       </footer>
     </div>
