@@ -6,6 +6,12 @@ import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
 import type { Hashtag } from '@/lib/types';
 
+interface MediaAnalysisResult {
+  titles: string[];
+  themes: string[];
+  description: string;
+}
+
 const SAMPLE_PROMPTS = [
   'Just finished a tough workout at the gym, feeling accomplished and energized!',
   'Made homemade pasta for the first time - it turned out amazing!',
@@ -15,7 +21,7 @@ const SAMPLE_PROMPTS = [
 ];
 
 export function HashtagInput() {
-  const { generateHashtags, isGenerating, error, isPro, setHashtagsDirectly } = useApp();
+  const { generateHashtags, isGenerating, error, isPro, setHashtagsDirectly, setMediaAnalysisResult } = useApp();
   const [text, setText] = useState('');
   const [showMediaUpload, setShowMediaUpload] = useState(false);
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
@@ -99,6 +105,7 @@ export function HashtagInput() {
           mediaType={mediaType}
           onMediaTypeChange={setMediaType}
           onHashtagsGenerated={setHashtagsDirectly}
+          onMediaAnalysisComplete={setMediaAnalysisResult}
         />
       )}
 
@@ -133,14 +140,144 @@ export function HashtagInput() {
   );
 }
 
+// Extract frames from video URL at evenly spaced intervals
+async function extractVideoFrames(videoUrl: string, numFrames: number = 8): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.preload = 'metadata';
+
+    video.onloadedmetadata = () => {
+      const duration = video.duration;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve([]);
+        return;
+      }
+
+      // Calculate timestamps for evenly spaced frames
+      const timestamps: number[] = [];
+      for (let i = 0; i < numFrames; i++) {
+        const t = duration * 0.05 + (duration * 0.9 * i) / (numFrames - 1);
+        timestamps.push(t);
+      }
+
+      const frames: string[] = [];
+      let processed = 0;
+
+      canvas.width = 640;
+      canvas.height = 360;
+
+      const captureFrame = (time: number) => {
+        return new Promise<void>((res) => {
+          video.currentTime = time;
+          video.onseeked = () => {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            frames.push(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+            processed++;
+            if (processed === timestamps.length) {
+              resolve(frames);
+            }
+            res();
+          };
+        });
+      };
+
+      timestamps.reduce(async (promise, time) => {
+        await promise;
+        await captureFrame(time);
+      }, Promise.resolve());
+    };
+
+    video.onerror = () => {
+      reject(new Error('Failed to load video'));
+    };
+
+    video.onabort = () => {
+      resolve([]);
+    };
+
+    video.src = videoUrl;
+  });
+}
+
+// Extract frames from a local video file (Blob/File)
+async function extractVideoFramesFromFile(file: File, numFrames: number = 8): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    const url = URL.createObjectURL(file);
+    video.preload = 'metadata';
+
+    video.onloadedmetadata = () => {
+      const duration = video.duration;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        URL.revokeObjectURL(url);
+        resolve([]);
+        return;
+      }
+
+      // Calculate timestamps for evenly spaced frames
+      const timestamps: number[] = [];
+      for (let i = 0; i < numFrames; i++) {
+        const t = duration * 0.05 + (duration * 0.9 * i) / (numFrames - 1);
+        timestamps.push(t);
+      }
+
+      const frames: string[] = [];
+      let processed = 0;
+
+      canvas.width = 640;
+      canvas.height = 360;
+
+      const captureFrame = (time: number) => {
+        return new Promise<void>((res) => {
+          video.currentTime = time;
+          video.onseeked = () => {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            frames.push(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+            processed++;
+            if (processed === timestamps.length) {
+              URL.revokeObjectURL(url);
+              resolve(frames);
+            }
+            res();
+          };
+        });
+      };
+
+      timestamps.reduce(async (promise, time) => {
+        await promise;
+        await captureFrame(time);
+      }, Promise.resolve());
+    };
+
+    video.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load video'));
+    };
+
+    video.onabort = () => {
+      URL.revokeObjectURL(url);
+      resolve([]);
+    };
+
+    video.src = url;
+  });
+}
+
 function MediaUploader({
   mediaType,
   onMediaTypeChange,
   onHashtagsGenerated,
+  onMediaAnalysisComplete,
 }: {
   mediaType: 'image' | 'video';
   onMediaTypeChange: (type: 'image' | 'video') => void;
   onHashtagsGenerated: (hashtags: Hashtag[]) => void;
+  onMediaAnalysisComplete?: (result: MediaAnalysisResult) => void;
 }) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
@@ -152,13 +289,13 @@ function MediaUploader({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (mediaType === 'image' && file.size > 5 * 1024 * 1024) {
-      alert('Image must be less than 5MB');
+    if (mediaType === 'image' && file.size > 20 * 1024 * 1024) {
+      alert('Image must be less than 20MB');
       return;
     }
 
-    if (mediaType === 'video' && file.size > 50 * 1024 * 1024) {
-      alert('Video must be less than 50MB');
+    if (mediaType === 'video' && file.size > 100 * 1024 * 1024) {
+      alert('Video must be less than 500MB');
       return;
     }
 
@@ -198,9 +335,61 @@ function MediaUploader({
             reach: index < 4 ? 15000000 : index > 12 ? 50000 : 2000000,
           }));
           onHashtagsGenerated(hashtags);
+
+          // Pass media analysis result if callback provided
+          if (onMediaAnalysisComplete) {
+            onMediaAnalysisComplete({
+              titles: data.titles || [],
+              themes: data.themes || [],
+              description: data.description || '',
+            });
+          }
+
           setPreview(null);
         } else {
           throw new Error('No hashtags generated. Try a clearer image.');
+        }
+      } else if (mediaType === 'video') {
+        // Extract frames from video file and send to API
+        const frameBase64s = await extractVideoFramesFromFile(file, 8);
+
+        if (frameBase64s.length === 0) {
+          throw new Error('Could not extract frames from video. Please try a different file.');
+        }
+
+        const response = await fetch('/api/analyze-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64s: frameBase64s }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Video analysis failed');
+        }
+
+        if (data.keywords && data.keywords.length > 0) {
+          const hashtags: Hashtag[] = data.keywords.map((tag: string, index: number) => ({
+            tag: tag.startsWith('#') ? tag : `#${tag}`,
+            category: index < 5 ? 'popular' : index < 10 ? 'niche' : 'specific',
+            competition: index < 4 ? 'high' : index > 12 ? 'low' : 'medium',
+            reach: index < 4 ? 15000000 : index > 12 ? 50000 : 2000000,
+          }));
+          onHashtagsGenerated(hashtags);
+
+          // Pass media analysis result if callback provided
+          if (onMediaAnalysisComplete) {
+            onMediaAnalysisComplete({
+              titles: data.titles || [],
+              themes: data.themes || [],
+              description: data.description || '',
+            });
+          }
+
+          setPreview(null);
+        } else {
+          throw new Error('No hashtags generated. Try a clearer video.');
         }
       }
     } catch (err) {
@@ -221,10 +410,17 @@ function MediaUploader({
     setError(null);
 
     try {
+      // Extract frames from video and send as images
+      const frameBase64s = await extractVideoFrames(videoUrl, 8);
+
+      if (frameBase64s.length === 0) {
+        throw new Error('Could not extract frames from video. Please try a different URL.');
+      }
+
       const response = await fetch('/api/analyze-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoUrls: [videoUrl] }),
+        body: JSON.stringify({ imageBase64s: frameBase64s }),
       });
 
       const data = await response.json();
@@ -243,12 +439,19 @@ function MediaUploader({
         }));
         onHashtagsGenerated(hashtags);
         setVideoUrl('');
+        setPreview(null);
       } else {
         throw new Error('No hashtags generated. Try a different URL.');
       }
     } catch (err) {
       console.error('Video analysis failed:', err);
-      setError(err instanceof Error ? err.message : 'Video analysis failed');
+      const msg = err instanceof Error ? err.message : 'Video analysis failed';
+      // Provide helpful error message for common issues
+      if (msg.includes('Failed to load video') || msg.includes('Failed to load')) {
+        setError('Could not load video. Please use a direct video file URL (MP4, WebM) that is publicly accessible. Streaming links (YouTube, TikTok embeds) are not supported.');
+      } else {
+        setError(msg);
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -317,31 +520,45 @@ function MediaUploader({
           </div>
 
           <p className="mt-2 text-center text-xs text-gray-500">
-            JPG/PNG, max 5MB
+            JPG/PNG, max 20MB
           </p>
         </>
       ) : (
         <>
-          {/* Video URL input */}
-          <div className="mb-4">
-            <input
-              type="url"
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              placeholder="Enter video URL (e.g., https://example.com/video.mp4)"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800"
-            />
-            <button
-              onClick={handleVideoUrlAnalyze}
-              disabled={isAnalyzing || !videoUrl.trim()}
-              className="mt-2 w-full rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
-            >
-              {isAnalyzing ? 'Analyzing...' : 'Analyze Video URL'}
-            </button>
+          {/* Video Preview */}
+          <div className="mb-4 flex justify-center">
+            {preview ? (
+              <video
+                src={preview}
+                className="h-40 w-40 rounded-lg object-cover"
+                controls
+              />
+            ) : (
+              <div className="flex h-40 w-40 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800">
+                <Video className="h-8 w-8 text-gray-400" />
+              </div>
+            )}
           </div>
 
-          <p className="text-center text-xs text-gray-500">
-            Enter a direct video URL for analysis
+          {error && <p className="mb-4 text-center text-sm text-red-500">{error}</p>}
+
+          <div className="flex justify-center">
+            <label className="cursor-pointer">
+              <span className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+                {isAnalyzing ? 'Analyzing...' : 'Choose Video File'}
+              </span>
+              <input
+                type="file"
+                accept="video/mp4,video/webm,video/quicktime"
+                onChange={handleFileUpload}
+                className="hidden"
+                disabled={isAnalyzing}
+              />
+            </label>
+          </div>
+
+          <p className="mt-2 text-center text-xs text-gray-500">
+            MP4/WebM, max 500MB
           </p>
         </>
       )}

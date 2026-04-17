@@ -37,3 +37,10 @@ export interface PricingTier {
   highlighted?: boolean;
   plan: Plan;
 }
+
+export interface MediaAnalysisResult {
+  hashtags: Hashtag[];
+  titles: string[];
+  themes: string[];
+  description: string;
+}

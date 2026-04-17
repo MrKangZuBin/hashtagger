@@ -5,6 +5,8 @@ import { Sparkles, Crown, Zap } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
 
+const isDevOrTest = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_APP_ENV === 'test';
+
 export function Header() {
   const { isPro, plan, usage, toggleProMode } = useApp();
 
@@ -19,20 +21,22 @@ export function Header() {
         </Link>
 
         <nav className="flex items-center gap-4">
-          {/* Demo: Toggle Pro Mode */}
-          <button
-            onClick={toggleProMode}
-            className={cn(
-              'flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-all',
-              isPro
-                ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400'
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
-            )}
-            title="Demo: Toggle Pro mode"
-          >
-            <Zap className="h-3 w-3" />
-            {isPro ? 'Pro Mode ON' : 'Try Pro'}
-          </button>
+          {/* Demo: Toggle Pro Mode - only in dev/test */}
+          {isDevOrTest && (
+            <button
+              onClick={toggleProMode}
+              className={cn(
+                'flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-all',
+                isPro
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
+              )}
+              title="Demo: Toggle Pro mode"
+            >
+              <Zap className="h-3 w-3" />
+              {isPro ? 'Pro Mode ON' : 'Try Pro'}
+            </button>
+          )}
 
           {!isPro && (
             <Link

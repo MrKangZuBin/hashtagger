@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { DEEPSEEK_CONFIG, ALIBABA_CONFIG, BANNED_HASHTAGS, PLATFORM_LIMITS } from './constants';
 import { parseHashtagsFromResponse } from './utils';
-import type { Hashtag, Platform } from './types';
+import type { Hashtag, Platform, MediaAnalysisResult } from './types';
 
 // Initialize OpenAI client for Aliyun DashScope (compatible mode)
 const aliyunClient = new OpenAI({
@@ -82,7 +82,7 @@ export async function generateHashtags(
   return categorizeHashtags(hashtags);
 }
 
-export async function analyzeImage(imageBase64: string): Promise<string[]> {
+export async function analyzeImage(imageBase64: string): Promise<MediaAnalysisResult> {
   if (!process.env.ALIYUN_API_KEY) {
     throw new Error('Aliyun API key not configured. Please add ALIYUN_API_KEY to .env.local');
   }
@@ -95,32 +95,79 @@ export async function analyzeImage(imageBase64: string): Promise<string[]> {
           role: 'user',
           content: [
             { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
-            { type: 'text', text: 'Generate 5-8 relevant social media hashtags for this image. Output ONLY the hashtags in English, separated by spaces, nothing else. Example: #fashion #style #love #photo #instagood' },
+            { type: 'text', text: `Analyze this image and provide a JSON response with the following structure:
+{
+  "hashtags": ["#tag1", "#tag2", ...],  // 5-8 relevant hashtags
+  "titles": ["Catchy Title 1", "Catchy Title 2", "Catchy Title 3", "Catchy Title 4", "Catchy Title 5"],  // 5 clickbait-style titles
+  "themes": ["theme1", "theme2", "theme3"],  // 3 main themes or topics
+  "description": "A brief 1-2 sentence description of the image content"
+}
+Only output valid JSON, no other text.` },
           ],
         },
       ],
-      max_tokens: ALIBABA_CONFIG.maxTokens,
-      temperature: ALIBABA_CONFIG.temperature,
+      max_tokens: 1000,
+      temperature: 0.7,
     });
 
     const content = response.choices[0]?.message?.content || '';
     console.log('DashScope response:', content);
 
-    // Parse hashtags from response
-    const hashtags = content
-      .split(/[\s,#]+/)
-      .map((k: string) => k.trim())
-      .filter((k: string) => k.length > 0 && k.length < 30 && !k.startsWith('http'))
-      .map((k: string) => k.startsWith('#') ? k : `#${k}`);
-
-    return hashtags.slice(0, 8);
+    return parseMediaResponse(content);
   } catch (error) {
     console.error('DashScope API error:', error);
     throw error;
   }
 }
 
-export async function analyzeVideo(videoUrls: string[]): Promise<string[]> {
+export async function analyzeImages(imageBase64s: string[]): Promise<MediaAnalysisResult> {
+  if (!process.env.ALIYUN_API_KEY) {
+    throw new Error('Aliyun API key not configured. Please add ALIYUN_API_KEY to .env.local');
+  }
+
+  try {
+    // Build content array with all images
+    const content: Array<{ type: 'image_url'; image_url: { url: string } } | { type: 'text'; text: string }> = [
+      ...imageBase64s.map(base64 => ({
+        type: 'image_url' as const,
+        image_url: { url: `data:image/jpeg;base64,${base64}` }
+      })),
+      {
+        type: 'text' as const,
+        text: `These are frames from a video. Provide a JSON response with the following structure:
+{
+  "hashtags": ["#tag1", "#tag2", ...],  // 5-8 relevant hashtags
+  "titles": ["Catchy Title 1", "Catchy Title 2", "Catchy Title 3", "Catchy Title 4", "Catchy Title 5"],  // 5 clickbait-style titles
+  "themes": ["theme1", "theme2", "theme3"],  // 3 main themes or topics
+  "description": "A brief 1-2 sentence description of the video content"
+}
+Only output valid JSON, no other text.`
+      }
+    ];
+
+    const response = await aliyunClient.chat.completions.create({
+      model: 'qwen-vl-max',
+      messages: [
+        {
+          role: 'user',
+          content,
+        },
+      ],
+      max_tokens: 1000,
+      temperature: 0.7,
+    });
+
+    const resultContent = response.choices[0]?.message?.content || '';
+    console.log('DashScope multi-image response:', resultContent);
+
+    return parseMediaResponse(resultContent);
+  } catch (error) {
+    console.error('DashScope API error:', error);
+    throw error;
+  }
+}
+
+export async function analyzeVideo(videoUrls: string[]): Promise<MediaAnalysisResult> {
   if (!process.env.ALIYUN_API_KEY) {
     throw new Error('Aliyun API key not configured. Please add ALIYUN_API_KEY to .env.local');
   }
@@ -136,26 +183,77 @@ export async function analyzeVideo(videoUrls: string[]): Promise<string[]> {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           content: [
             { type: 'video', video: videoUrls } as any,
-            { type: 'text', text: 'Generate 5-8 relevant social media hashtags for this video. Output ONLY the hashtags in English, separated by spaces, nothing else. Example: #fashion #style #love #video #trending' },
+            { type: 'text', text: `Analyze this video and provide a JSON response with the following structure:
+{
+  "hashtags": ["#tag1", "#tag2", ...],  // 5-8 relevant hashtags
+  "titles": ["Catchy Title 1", "Catchy Title 2", "Catchy Title 3", "Catchy Title 4", "Catchy Title 5"],  // 5 clickbait-style titles
+  "themes": ["theme1", "theme2", "theme3"],  // 3 main themes or topics
+  "description": "A brief 1-2 sentence description of the video content"
+}
+Only output valid JSON, no other text.` },
           ],
         },
       ],
-      max_tokens: ALIBABA_CONFIG.maxTokens,
-      temperature: ALIBABA_CONFIG.temperature,
+      max_tokens: 1000,
+      temperature: 0.7,
     });
 
     const content = response.choices[0]?.message?.content || '';
     console.log('DashScope video response:', content);
 
-    const keywords = content
-      .split(/[,\n]/)
-      .map((k: string) => k.trim())
-      .filter((k: string) => k.length > 0 && k.length < 30);
-
-    return keywords.slice(0, 8);
+    return parseMediaResponse(content);
   } catch (error) {
     console.error('DashScope API error:', error);
     throw error;
+  }
+}
+
+// Parse JSON response from AI
+function parseMediaResponse(content: string): MediaAnalysisResult {
+  try {
+    // Try to extract JSON from the response
+    let jsonStr = content;
+
+    // Find JSON block (handle markdown code blocks)
+    const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || content.match(/(\{[\s\S]*\})/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[1];
+    }
+
+    const parsed = JSON.parse(jsonStr);
+
+    // Ensure hashtags have # prefix
+    const hashtags = (parsed.hashtags || []).map((h: string) =>
+      h.startsWith('#') ? h : `#${h}`
+    );
+
+    return {
+      hashtags,
+      titles: parsed.titles || [],
+      themes: parsed.themes || [],
+      description: parsed.description || '',
+    };
+  } catch (error) {
+    console.error('Failed to parse media response:', error);
+    // Fallback: try to extract hashtags the old way
+    const hashtags = content
+      .split(/[\s,#]+/)
+      .map((k: string) => k.trim())
+      .filter((k: string) => k.length > 0 && k.length < 30 && !k.startsWith('http'))
+      .map((k: string) => k.startsWith('#') ? k : `#${k}`)
+      .slice(0, 8);
+
+    return {
+      hashtags: hashtags.map((tag, index) => ({
+        tag,
+        category: index < 5 ? 'popular' as const : index < 10 ? 'niche' as const : 'specific' as const,
+        competition: index < 4 ? 'high' as const : index > 12 ? 'low' as const : 'medium' as const,
+        reach: index < 4 ? 15000000 : index > 12 ? 50000 : 2000000,
+      })),
+      titles: [],
+      themes: [],
+      description: '',
+    };
   }
 }
 

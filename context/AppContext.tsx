@@ -19,6 +19,13 @@ interface AppState {
 
   // History (Pro feature)
   history: Array<{ text: string; hashtags: Hashtag[]; timestamp: Date }>;
+
+  // Media analysis result (Pro feature)
+  mediaAnalysisResult: {
+    titles: string[];
+    themes: string[];
+    description: string;
+  } | null;
 }
 
 interface AppContextType extends AppState {
@@ -30,6 +37,7 @@ interface AppContextType extends AppState {
   toggleProMode: () => void;
   setHashtagsDirectly: (hashtags: Hashtag[]) => void;
   deleteHashtag: (index: number) => void;
+  setMediaAnalysisResult: (result: { titles: string[]; themes: string[]; description: string } | null) => void;
 }
 
 const defaultUsage: UserUsage = {
@@ -51,6 +59,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     error: null,
     platform: ['instagram'],
     history: [],
+    mediaAnalysisResult: null,
   });
 
   const mounted = useRef(false);
@@ -105,7 +114,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    setState(prev => ({ ...prev, isGenerating: true, error: null }));
+    setState(prev => ({ ...prev, isGenerating: true, error: null, mediaAnalysisResult: null }));
 
     try {
       const response = await fetch('/api/generate', {
@@ -156,7 +165,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const clearHashtags = useCallback(() => {
-    setState(prev => ({ ...prev, hashtags: [], error: null }));
+    setState(prev => ({ ...prev, hashtags: [], error: null, mediaAnalysisResult: null }));
   }, []);
 
   const copyToClipboard = useCallback(async (): Promise<boolean> => {
@@ -213,6 +222,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const setMediaAnalysisResult = useCallback((result: { titles: string[]; themes: string[]; description: string } | null) => {
+    setState(prev => ({
+      ...prev,
+      mediaAnalysisResult: result,
+    }));
+  }, []);
+
   const deleteHashtag = useCallback((index: number) => {
     setState(prev => ({
       ...prev,
@@ -232,6 +248,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toggleProMode,
         setHashtagsDirectly,
         deleteHashtag,
+        setMediaAnalysisResult,
       }}
     >
       {children}

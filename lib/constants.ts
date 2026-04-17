@@ -72,7 +72,8 @@ export const PRICING_TIERS = [
     highlighted: true,
     features: [
       'Unlimited generations',
-      'Image analysis',
+      'Image & video analysis',
+      'AI titles & descriptions',
       'Banned tag filtering',
       'Multi-platform adapt',
       '30-day history',

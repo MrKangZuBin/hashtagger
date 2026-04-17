@@ -22,7 +22,7 @@ const platformNames = {
 };
 
 export function HashtagResults() {
-  const { hashtags, platform, clearHashtags, copyToClipboard, isPro, deleteHashtag } = useApp();
+  const { hashtags, platform, clearHashtags, copyToClipboard, isPro, deleteHashtag, mediaAnalysisResult } = useApp();
   const [copied, setCopied] = useState(false);
   const [filter, setFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const [showGuide, setShowGuide] = useState(false);
@@ -75,6 +75,71 @@ export function HashtagResults() {
           </div>
         </div>
 
+        {/* Free user upgrade hint */}
+        {!isPro && (
+          <div className="mb-4 flex flex-wrap gap-2 rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <Lock className="h-4 w-4" />
+              <span>Competition analysis & banned tag filtering are Pro features</span>
+            </div>
+          </div>
+        )}
+
+        {/* Media Analysis Result - Titles, Description */}
+        {isPro && mediaAnalysisResult && (
+          <>
+            {/* Titles */}
+            {mediaAnalysisResult.titles.length > 0 && (
+              <div className="mb-4">
+                <h3 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Recommended Titles</h3>
+                <div className="space-y-2">
+                  {mediaAnalysisResult.titles.map((title, i) => (
+                    <div key={i} className="flex items-start gap-2 rounded-lg bg-gradient-to-r from-violet-50 to-fuchsia-50 p-3 dark:from-violet-950/30 dark:to-fuchsia-950/30">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-violet-100 text-xs font-medium text-violet-700 dark:bg-violet-900/50 dark:text-violet-300">
+                        {i + 1}
+                      </span>
+                      <p className="flex-1 text-sm text-gray-800 dark:text-gray-200">{title}</p>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(title)}
+                        className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+                        title="Copy title"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Description */}
+            {mediaAnalysisResult.description && (
+              <div className="mb-4 border-t pt-4 dark:border-gray-800">
+                <h3 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Recommended Description</h3>
+                <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{mediaAnalysisResult.description}</p>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Hashtag Tags - colors based on competition, show platform if multi-select */}
+        <div className="mb-4 flex flex-wrap gap-2">
+          {filteredHashtags.map((hashtag, index) => {
+            const originalIndex = hashtags.findIndex(h => h.tag === hashtag.tag);
+            return (
+              <HashtagTag
+                key={`${hashtag.tag}-${originalIndex}`}
+                hashtag={hashtag}
+                isPro={isPro}
+                multiPlatform={platforms.length > 1}
+                onDelete={() => deleteHashtag(originalIndex)}
+              />
+            );
+          })}
+        </div>
+
         {/* Competition Analysis Guide */}
         {isPro && (
           <div className="mb-4 rounded-lg bg-gradient-to-r from-violet-50 to-fuchsia-50 p-3 dark:from-violet-950/30 dark:to-fuchsia-950/30">
@@ -120,32 +185,6 @@ export function HashtagResults() {
             </div>
           </div>
         )}
-
-        {/* Free user upgrade hint */}
-        {!isPro && (
-          <div className="mb-4 flex flex-wrap gap-2 rounded-lg bg-gray-50 p-3 dark:bg-gray-800/50">
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <Lock className="h-4 w-4" />
-              <span>Competition analysis & banned tag filtering are Pro features</span>
-            </div>
-          </div>
-        )}
-
-        {/* Hashtag Tags - colors based on competition, show platform if multi-select */}
-        <div className="mb-4 flex flex-wrap gap-2">
-          {filteredHashtags.map((hashtag, index) => {
-            const originalIndex = hashtags.findIndex(h => h.tag === hashtag.tag);
-            return (
-              <HashtagTag
-                key={`${hashtag.tag}-${originalIndex}`}
-                hashtag={hashtag}
-                isPro={isPro}
-                multiPlatform={platforms.length > 1}
-                onDelete={() => deleteHashtag(originalIndex)}
-              />
-            );
-          })}
-        </div>
 
         {/* Actions */}
         <div className="flex flex-wrap gap-3 border-t pt-4 dark:border-gray-800">
