@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { prisma } from '@/lib/auth';
 
 // Lemon Squeezy webhook handler
 // Configure this URL in your Lemon Squeezy dashboard: https://app.lemonsqueezy.com/settings/webhooks
@@ -22,6 +23,22 @@ interface LemonEvent {
       user_email?: string;
     };
   };
+}
+
+// Map Lemon Squeezy status to our plan status
+function mapLemonStatus(status: string): string {
+  switch (status) {
+    case 'active':
+      return 'active';
+    case 'cancelled':
+      return 'cancelled';
+    case 'expired':
+      return 'expired';
+    case 'paused':
+      return 'paused';
+    default:
+      return status;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -51,25 +68,38 @@ export async function POST(request: NextRequest) {
 
     console.log(`Received Lemon Squeezy webhook: ${eventName}`);
 
+    const userId = event.meta.custom_data?.user_id;
+    const plan = event.meta.custom_data?.plan;
+
     // Handle subscription events
     switch (eventName) {
       case 'subscription_created':
       case 'subscription_updated':
-        // Activate or update user subscription
-        // In a real app, you'd update your database here
-        console.log(`Subscription ${eventName}:`, {
-          id: event.data.id,
-          email: event.data.attributes.user_email,
-          status: event.data.attributes.status,
-        });
+        if (userId) {
+          await prisma.user.update({
+            where: { id: userId },
+            data: {
+              plan: plan as any,
+              subscriptionStatus: mapLemonStatus(event.data.attributes.status || ''),
+              subscriptionEndDate: event.data.attributes.ends_at ? new Date(event.data.attributes.ends_at) : null,
+            },
+          });
+          console.log(`Subscription ${eventName} updated for user ${userId}`);
+        }
         break;
 
       case 'subscription_cancelled':
       case 'subscription_expired':
-        // Deactivate user subscription
-        console.log(`Subscription ${eventName}:`, {
-          id: event.data.id,
-        });
+        if (userId) {
+          await prisma.user.update({
+            where: { id: userId },
+            data: {
+              subscriptionStatus: mapLemonStatus(eventName === 'subscription_cancelled' ? 'cancelled' : 'expired'),
+              // Keep the plan but mark as inactive
+            },
+          });
+          console.log(`Subscription ${eventName} for user ${userId}`);
+        }
         break;
 
       case 'order_created':

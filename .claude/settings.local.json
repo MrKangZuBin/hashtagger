@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prisma *)",
+      "Bash(npm uninstall *)",
+      "Bash(npm install *)"
+    ],
+    "additionalDirectories": [
+      "E:\\work\\ai\\nexus\\projects\\hashtagger\\app\\api\\admin\\users"
+    ]
+  }
+}

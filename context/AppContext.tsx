@@ -69,6 +69,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     mounted.current = true;
     const savedUsage = localStorage.getItem('hashtagger_usage');
     const savedPlan = localStorage.getItem('hashtagger_user_plan');
+    const authToken = localStorage.getItem('auth_token');
 
     if (savedUsage) {
       try {
@@ -91,8 +92,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Check if user has pro plan
-    if (savedPlan === 'pro' || savedPlan === 'business') {
+    // If logged in, fetch user info from server
+    if (authToken) {
+      fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${authToken}` },
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.user) {
+            const userPlan = data.user.plan;
+            const isProPlan = userPlan !== 'FREE';
+            setState(prev => ({
+              ...prev,
+              plan: userPlan,
+              isPro: isProPlan,
+              usage: { ...prev.usage, maxUses: isProPlan ? 999999 : prev.usage.maxUses, isPro: isProPlan },
+            }));
+          }
+        })
+        .catch(console.error);
+    } else if (savedPlan === 'pro' || savedPlan === 'business') {
       setState(prev => ({
         ...prev,
         plan: savedPlan,
