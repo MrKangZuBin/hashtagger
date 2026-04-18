@@ -142,7 +142,7 @@ export function Header() {
           )}
 
           {/* Free user usage */}
-          {!isLoggedIn && !isPro && (
+          {!isPro && (
             <div className="flex items-center gap-1 text-sm text-gray-500">
               <span className="font-medium">{usage.dailyUses}/{usage.maxUses}</span>
               <span className="hidden sm:inline">uses today</span>
