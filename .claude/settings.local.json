@@ -3,10 +3,19 @@
     "allow": [
       "Bash(npx prisma *)",
       "Bash(npm uninstall *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(git mv *)",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('messages/en.json', 'utf8'\\)\\); console.log\\('JSON is valid'\\)\")",
+      "Bash(npm list *)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/zh/)",
+      "Bash(taskkill /F /PID 26280)",
+      "Bash(taskkill /F /PID 23032)",
+      "Bash(curl -s http://localhost:3000/)"
     ],
     "additionalDirectories": [
-      "E:\\work\\ai\\nexus\\projects\\hashtagger\\app\\api\\admin\\users"
+      "E:\\work\\ai\\nexus\\projects\\hashtagger\\app\\api\\admin\\users",
+      "e:\\work\\ai\\nexus\\projects\\hashtagger\\app"
     ]
   }
 }

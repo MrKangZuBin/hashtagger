@@ -21,7 +21,12 @@ export function PlatformSelector() {
       if (platform.length === 1) return;
       setPlatform(platform.filter(p => p !== id));
     } else {
-      setPlatform([...platform, id]);
+      // Free users can only select one platform
+      if (!isPro) {
+        setPlatform([id]);
+      } else {
+        setPlatform([...platform, id]);
+      }
     }
   };
 

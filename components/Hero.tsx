@@ -1,43 +1,45 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Zap, Shield, Clock, TrendingUp } from 'lucide-react';
 
-const features = [
-  {
-    icon: Zap,
-    title: '3-Second Generation',
-    description: 'AI-powered hashtag creation in seconds, not hours',
-  },
-  {
-    icon: Shield,
-    title: 'Banned Tag Filter',
-    description: 'Automatically avoids restricted and overused tags',
-  },
-  {
-    icon: Clock,
-    title: 'Multi-Platform',
-    description: 'Optimized hashtags for Instagram, TikTok, YouTube, and X',
-  },
-  {
-    icon: TrendingUp,
-    title: 'Competition Analysis',
-    description: 'See hashtag competition and reach potential (Pro)',
-  },
-];
-
 export function Hero() {
+  const t = useTranslations('hero');
+
+  const features = [
+    {
+      icon: Zap,
+      titleKey: '3SecondGeneration',
+      descKey: '3SecondGenerationDesc',
+    },
+    {
+      icon: Shield,
+      titleKey: 'bannedTagFilter',
+      descKey: 'bannedTagFilterDesc',
+    },
+    {
+      icon: Clock,
+      titleKey: 'multiPlatform',
+      descKey: 'multiPlatformDesc',
+    },
+    {
+      icon: TrendingUp,
+      titleKey: 'competitionAnalysis',
+      descKey: 'competitionAnalysisDesc',
+    },
+  ];
+
   return (
     <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
       <div className="text-center">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
           <span className="bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
-            AI-Powered
+            {t('titleGradient')}
           </span>{' '}
-          Hashtag Generator
+          {t('titleSuffix')}
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-600 dark:text-gray-400">
-          Generate perfect hashtags for your social media posts in seconds.
-          Increase your reach and engagement with AI-optimized tags.
+          {t('subtitle')}
         </p>
       </div>
 
@@ -50,9 +52,9 @@ export function Hero() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500">
               <feature.icon className="h-6 w-6 text-white" />
             </div>
-            <h3 className="mt-4 font-semibold">{feature.title}</h3>
+            <h3 className="mt-4 font-semibold">{t(feature.titleKey)}</h3>
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              {feature.description}
+              {t(feature.descKey)}
             </p>
           </div>
         ))}

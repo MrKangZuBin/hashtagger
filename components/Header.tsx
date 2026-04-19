@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Sparkles, Crown, Zap, LogOut, User, Settings } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
 const isDevOrTest = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_APP_ENV === 'test';
 
@@ -55,6 +56,9 @@ export function Header() {
         </Link>
 
         <nav className="flex items-center gap-4">
+          {/* Language Switcher */}
+          <LanguageSwitcher />
+
           {/* Logged in user menu */}
           {isLoggedIn ? (
             <>
