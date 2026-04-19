@@ -1,0 +1,65 @@
+# Hashtagger - AI-Powered Hashtag Generator
+
+## Product Overview
+Hashtagger is an AI-powered hashtag generation tool designed for content creators on Instagram, TikTok, YouTube, and X/Twitter. The tool helps users generate optimized hashtags in seconds, with features like banned tag filtering and competition analysis.
+
+## Key Features
+
+### Free Plan
+- 10 hashtag generations per day
+- Text-to-hashtags conversion
+- Multi-platform support (Instagram, TikTok, YouTube, X/Twitter)
+- Automatic banned tag filtering
+
+### Pro Plan ($9/month or $90/year)
+- Unlimited hashtag generations
+- Image analysis
+- Video analysis
+- Competition analysis
+- Banned tag filtering
+- 30-day generation history
+- Multi-platform optimization
+
+### Business Plan ($29/month or $290/year)
+- Everything in Pro
+- CSV bulk generation
+- 5 team members
+- API access
+- Priority support
+
+## How It Works
+1. Describe your post or content
+2. Select your target platform (Instagram, TikTok, YouTube, or X/Twitter)
+3. Get optimized hashtags in 3 seconds
+4. Copy and use the hashtags on your social media posts
+
+## Use Cases
+- Instagram influencers looking for trending hashtags
+- TikTok creators seeking discoverability
+- YouTube content creators optimizing video tags
+- X/Twitter users wanting to increase tweet reach
+- Social media managers handling multiple accounts
+
+## Technical Information
+- Website: https://hashtagger.ai
+- Platform: Web-based (no installation required)
+- Languages: English, Chinese, Spanish, Japanese, Korean, Thai
+- API: Available on Business plan
+
+## Contact
+- Telegram: https://t.me/+uNUUQQawnzkwY2Y1
+- Twitter: https://x.com/sanKang29267869
+
+## Terms and Privacy
+- Privacy Policy: Available on website
+- Terms of Service: Available on website
+- Money-back guarantee: 5 days for Pro plan
+
+## Pricing
+- Free: $0/month (10 generations/day)
+- Pro Monthly: $9/month
+- Pro Yearly: $90/year (17% savings)
+- Business Monthly: $29/month
+- Business Yearly: $290/year
+
+Last updated: 2026-04-19

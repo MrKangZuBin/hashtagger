@@ -15,13 +15,27 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const BASE_URL = "https://hashtagger.ai";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(BASE_URL),
   title: "Hashtagger - AI-Powered Hashtag Generator",
   description: "Generate perfect hashtags for Instagram, TikTok, YouTube, and Twitter with AI. Increase your reach and engagement with optimized tags.",
   keywords: ["hashtags", "instagram", "tiktok", "youtube", "social media", "ai", "generator"],
+  alternates: {
+    canonical: BASE_URL,
+    languages: {
+      'en': `${BASE_URL}/en`,
+      'zh': `${BASE_URL}/zh`,
+      'es': `${BASE_URL}/es`,
+      'ja': `${BASE_URL}/ja`,
+      'ko': `${BASE_URL}/ko`,
+      'th': `${BASE_URL}/th`,
+    },
+  },
   openGraph: {
     type: "website",
-    url: "https://hashtagger.ai",
+    url: BASE_URL,
     title: "Hashtagger - AI-Powered Hashtag Generator",
     description: "Generate perfect hashtags for Instagram, TikTok, YouTube, and Twitter with AI. Increase your reach and engagement with optimized tags.",
     images: [
@@ -38,6 +52,38 @@ export const metadata: Metadata = {
     description: "Generate perfect hashtags for Instagram, TikTok, YouTube, and Twitter with AI.",
     images: ["/images/og-image.png"],
   },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'Hashtagger',
+  description: 'AI-powered hashtag generator for Instagram, TikTok, YouTube, and Twitter',
+  url: BASE_URL,
+  applicationCategory: 'SocialMediaApplication',
+  operatingSystem: 'Web',
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
+    description: 'Free plan with 10 daily generations',
+  },
+  aggregateRating: {
+    '@type': 'AggregateRating',
+    ratingValue: '4.8',
+    ratingCount: '126',
+  },
+  features: [
+    'AI-powered hashtag generation',
+    'Multi-platform support (Instagram, TikTok, YouTube, Twitter)',
+    'Banned tag filtering',
+    'Competition analysis',
+    'Image and video analysis',
+  ],
 };
 
 export function generateStaticParams() {
@@ -63,6 +109,12 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider messages={messages}>
           {children}

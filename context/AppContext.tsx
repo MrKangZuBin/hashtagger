@@ -180,7 +180,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [state.platform, state.isPro, state.usage.dailyUses, state.usage.maxUses]);
 
   const setPlatform = useCallback((platform: Platform | Platform[]) => {
-    setState(prev => ({ ...prev, platform: Array.isArray(platform) ? platform : [platform] }));
+    setState(prev => {
+      const newPlatform = Array.isArray(platform) ? platform : [platform];
+      // Free users can only select one platform
+      if (!prev.isPro && newPlatform.length > 1) {
+        return { ...prev, platform: [newPlatform[newPlatform.length - 1]] };
+      }
+      return { ...prev, platform: newPlatform };
+    });
   }, []);
 
   const clearHashtags = useCallback(() => {
