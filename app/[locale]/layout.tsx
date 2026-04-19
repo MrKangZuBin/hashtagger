@@ -20,8 +20,8 @@ const BASE_URL = "https://hashtagger.ai";
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: "Hashtagger - AI-Powered Hashtag Generator",
-  description: "Generate perfect hashtags for Instagram, TikTok, YouTube, and Twitter with AI. Increase your reach and engagement with optimized tags.",
-  keywords: ["hashtags", "instagram", "tiktok", "youtube", "social media", "ai", "generator"],
+  description: "The best hashtag generator for Instagram, TikTok, YouTube, and Twitter. Generate optimized hashtags with AI in 3 seconds and boost your reach.",
+  keywords: ["hashtag generator", "hashtags", "instagram hashtags", "tiktok hashtags", "youtube hashtags", "ai hashtags", "social media tags"],
   alternates: {
     canonical: BASE_URL,
     languages: {
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     type: "website",
     url: BASE_URL,
     title: "Hashtagger - AI-Powered Hashtag Generator",
-    description: "Generate perfect hashtags for Instagram, TikTok, YouTube, and Twitter with AI. Increase your reach and engagement with optimized tags.",
+    description: "The best hashtag generator for Instagram, TikTok, YouTube, and Twitter. Generate optimized hashtags with AI in 3 seconds and boost your reach.",
     images: [
       {
         url: "/images/og-image.png",
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Hashtagger - AI-Powered Hashtag Generator",
-    description: "Generate perfect hashtags for Instagram, TikTok, YouTube, and Twitter with AI.",
+    description: "The best hashtag generator for Instagram, TikTok, YouTube, and Twitter. Generate optimized hashtags with AI in 3 seconds.",
     images: ["/images/og-image.png"],
   },
   robots: {
@@ -110,6 +110,7 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <head>
+        <link rel="canonical" href={BASE_URL} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
